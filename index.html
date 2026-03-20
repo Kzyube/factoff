@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FactOff - The Truth Grid</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="feed.css">
+</head>
+<body>
+
+    <nav class="top-nav glass-nav">
+        <div class="logo">
+            <i class="fa-solid fa-shield-halved"></i> <span>FACTOFF</span>
+        </div>
+        
+        <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="search-input" placeholder="Search claims, users, or topics...">
+        </div>
+
+        <div class="nav-actions">
+            <button class="icon-btn theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+            <button class="btn-primary create-btn pulse-hover" onclick="openPostModal()">
+                <i class="fa-solid fa-plus"></i> Post Claim
+            </button>
+            <div class="user-profile" id="user-avatar-container" onclick="window.location.href='profile.html'">
+                <div class="avatar-skeleton"><i class="fa-solid fa-user"></i></div>
+            </div>
+            <button class="icon-btn logout-btn" onclick="logout()" title="Secure Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        </div>
+    </nav>
+
+    <main class="reddit-layout">
+        <aside class="left-sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav-links" id="sidebar-main-links">
+                    <li class="active-link" onclick="filterByTag('All')"><i class="fa-solid fa-house"></i> Home Feed</li>
+                    <li onclick="filterByTag('Trending')"><i class="fa-solid fa-fire"></i> Trending Claims</li>
+                    <li onclick="filterByTag('Queue')"><i class="fa-solid fa-gavel"></i> Validation Queue</li>
+                    <li id="bookmarks-link" onclick="filterByTag('Bookmarks')"><i class="fa-solid fa-bookmark"></i> My Bookmarks</li>
+                    <li id="validator-badges-link" style="display: none;" onclick="openBadgesModal()"><i class="fa-solid fa-award"></i> Earn Badges</li>
+                </ul>
+                
+                <div class="sidebar-section">
+                    <h3>Explore Topics</h3>
+                    <ul class="tag-list" id="sidebar-topics">
+                        <li onclick="filterByTag('All')" class="active-tag"><span class="tag-dot" style="background: #94a3b8;"></span> All Topics</li>
+                        <li onclick="filterByTag('Politics')"><span class="tag-dot" style="background: #3b82f6;"></span> Politics</li>
+                        <li onclick="filterByTag('Technology')"><span class="tag-dot" style="background: #10b981;"></span> Technology</li>
+                        <li onclick="filterByTag('Health')"><span class="tag-dot" style="background: #f59e0b;"></span> Health</li>
+                        <li onclick="filterByTag('Satire')"><span class="tag-dot" style="background: #8b5cf6;"></span> Satire</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <section class="center-feed">
+            <div class="interactive-card create-post-box slide-down" onclick="openPostModal()">
+                <div class="create-input-wrap">
+                    <div class="user-avatar-mini" id="mini-avatar"><i class="fa-solid fa-pen-nib"></i></div>
+                    <input type="text" placeholder="Have a claim to verify? Drop it here..." readonly>
+                </div>
+                <div class="create-actions">
+                    <div class="action-item"><i class="fa-solid fa-image" style="color: #3b82f6;"></i> Photo/Doc</div>
+                    <div class="action-item"><i class="fa-solid fa-link" style="color: #10b981;"></i> Link</div>
+                    <button class="btn-primary-small">Post</button>
+                </div>
+            </div>
+            
+            <div class="feed-wrapper" id="feed-container"></div>
+        </section>
+
+        <aside class="right-sidebar">
+            <div class="sidebar-sticky">
+                <div class="interactive-card widget leaderboard-widget fade-in">
+                    <div class="widget-header">
+                        <h3><i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> Top Validators</h3>
+                    </div>
+                    <div class="empty-state-mini">
+                        <i class="fa-solid fa-ranking-star"></i>
+                        <p>Grid is calibrating.</p>
+                        <span>Scores will appear soon.</span>
+                    </div>
+                </div>
+
+                <div class="interactive-card widget rules-widget fade-in" style="animation-delay: 0.1s;">
+                    <div class="widget-header">
+                        <h3><i class="fa-solid fa-scale-balanced" style="color: #8b5cf6;"></i> The Core Directives</h3>
+                    </div>
+                    <ol class="rules-list">
+                        <li><strong>Cite Sources:</strong> Evidence is everything.</li>
+                        <li><strong>Stay Objective:</strong> Attack claims, not people.</li>
+                        <li><strong>Tag AI:</strong> Disclose generated content.</li>
+                    </ol>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <div class="modal-overlay" id="post-modal">
+        <form class="modal-content scale-in" id="claim-form">
+            <div class="modal-header">
+                <h2>Initialize Claim</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closePostModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body modal-split-layout">
+                <div class="modal-left">
+                    <textarea id="claim-text" placeholder="State the claim clearly. What information requires validation?" required></textarea>
+                    
+                    <div class="tags-section">
+                        <p class="section-label">Categorize:</p>
+                        <div class="topic-tags" id="modal-tags">
+                            <label class="tag-label"><input type="checkbox" value="Politics" name="tags"> Politics</label>
+                            <label class="tag-label"><input type="checkbox" value="Technology" name="tags"> Technology</label>
+                            <label class="tag-label"><input type="checkbox" value="Health" name="tags"> Health</label>
+                            <label class="tag-label"><input type="checkbox" value="Satire" name="tags"> Satire</label>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
+                            <input type="text" id="custom-tag-input" placeholder="Add custom topic..." class="custom-input">
+                            <button type="button" class="btn-primary-small" onclick="addCustomTag()">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-right">
+                    <div style="margin-bottom: 1.5rem;">
+                        <p class="section-label">External Link:</p>
+                        <input type="url" id="claim-link" placeholder="https://..." class="custom-input" style="width: 100%;">
+                    </div>
+
+                    <p class="section-label">Attach Evidence (Files):</p>
+                    <label class="file-drop-zone" for="claim-files">
+                        <div class="drop-content">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p>Drag & Drop or Click</p>
+                            <span>Supports JPG, PNG, PDF, DOCX</span>
+                        </div>
+                        <input type="file" id="claim-files" multiple accept="image/*,.pdf,.doc,.docx,.ppt,.pptx" style="display: none;">
+                    </label>
+                    <div class="file-list" id="file-preview-list"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-text" onclick="closePostModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="submit-claim-btn"><i class="fa-solid fa-paper-plane"></i> Deploy Claim</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-overlay" id="comment-modal">
+        <div class="modal-content scale-in comment-modal-layout">
+            <div class="modal-header">
+                <h2>Post Comments</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closeCommentModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body comment-body-scroll" id="comment-modal-body">
+                <div id="comment-original-post"></div>
+                <div class="comments-section" id="comments-list">
+                    <div class="loading-state"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <div class="comment-footer">
+                <div id="comment-media-preview" class="comment-media-preview" style="display: none;"></div>
+                <div class="comment-input-wrapper">
+                    <div class="user-avatar-mini" id="comment-my-avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="comment-box-bg">
+                        <input type="text" id="comment-input" placeholder="Write a comment...">
+                        <label for="comment-file-upload" class="comment-file-btn"><i class="fa-solid fa-camera"></i></label>
+                        <input type="file" id="comment-file-upload" style="display:none;" accept="image/*,video/*,.pdf,.doc,.docx">
+                    </div>
+                    <button class="btn-primary-small" onclick="submitComment()"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="validate-modal">
+        <form class="modal-content scale-in" id="validate-form" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Validate Claim</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closeValidateModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="flex-direction: column; padding: 2rem;">
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <p class="section-label">Final Verdict:</p>
+                    <div style="display: flex; gap: 1rem;">
+                        <label class="tag-label"><input type="radio" name="verdict" value="REAL" required> <i class="fa-solid fa-check-circle"></i> REAL</label>
+                        <label class="tag-label"><input type="radio" name="verdict" value="FAKE" required> <i class="fa-solid fa-times-circle"></i> FAKE</label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; cursor: pointer; color: var(--text-main);">
+                        <input type="checkbox" id="trending-checkbox" style="width: 18px; height: 18px; cursor: pointer;">
+                        <i class="fa-solid fa-fire" style="color: var(--warning);"></i> Mark as Trending Claim
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <p class="section-label">Validator Notes / Explanation:</p>
+                    <textarea id="validate-notes" placeholder="Explain your findings here..." required class="custom-input" style="width: 100%; min-height: 80px; resize: vertical;"></textarea>
+                </div>
+
+                <div>
+                    <p class="section-label">Attach Proof/Evidence (Required):</p>
+                    <label class="file-drop-zone" for="validate-files" style="min-height: 100px;">
+                        <div class="drop-content">
+                            <i class="fa-solid fa-upload" style="color: var(--primary); font-size: 2rem; margin-bottom: 10px;"></i>
+                            <p style="font-size: 0.9rem;">Upload PDF, Photo, or Video</p>
+                        </div>
+                        <input type="file" id="validate-files" multiple accept="image/*,video/*,.pdf,.doc,.docx" required style="display: none;">
+                    </label>
+                    <div class="file-list" id="validate-file-preview"></div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-text" onclick="closeValidateModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="submit-validate-btn"><i class="fa-solid fa-gavel"></i> Submit Validation</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-overlay" id="proof-modal">
+        <div class="modal-content scale-in" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Validator Proof</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closeProofModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="flex-direction: column; padding: 2rem;" id="proof-modal-body">
+                </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="badges-modal">
+        <div class="modal-content scale-in" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Validator Badges</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closeBadgesModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="flex-direction: column; padding: 2rem;">
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h3 style="font-size: 3rem; color: var(--primary); margin-bottom: -5px;" id="total-validations-count">0</h3>
+                    <p style="color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem;">Total Validated Claims</p>
+                </div>
+                
+                <div class="badge-list" style="display: flex; flex-direction: column; gap: 1.5rem;" id="badges-container-list">
+                    <div class="spinner" style="margin: 0 auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="feed.js"></script>
+</body>
+</html>

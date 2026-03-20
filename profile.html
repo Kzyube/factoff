@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FactOff - Profile</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="feed.css">
+    <style>
+        .profile-container { max-width: 935px; margin: 2rem auto; padding: 0 20px; animation: slideUp 0.4s ease forwards; }
+
+        .profile-header { display: flex; margin-bottom: 3rem; background: var(--bg-surface); padding: 2rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+        .profile-avatar-sec { flex: 1; display: flex; justify-content: center; align-items: center; margin-right: 30px; }
+        .profile-avatar-sec img { 
+            width: 150px; height: 150px; border-radius: 50%; object-fit: cover; 
+            border: 4px solid var(--primary); padding: 4px; background: var(--bg-base);
+        }
+        
+        .profile-info-sec { flex: 2; display: flex; flex-direction: column; justify-content: center; }
+        .profile-title-row { display: flex; align-items: center; gap: 20px; margin-bottom: 15px; }
+        .profile-username { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+        .profile-role-badge { 
+            background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .profile-stats { display: flex; gap: 40px; margin-bottom: 20px; font-size: 1rem; color: var(--text-muted); }
+        .profile-stats span { font-weight: 700; color: var(--text-main); font-size: 1.1rem; }
+
+        .profile-bio { font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; }
+        .bio-name { font-weight: 700; display: block; color: var(--text-main); font-size: 1.05rem; }
+        .bio-text { color: var(--text-muted); white-space: pre-wrap; margin-bottom: 10px; }
+        .bio-link { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; padding: 0.4rem 0.8rem; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: var(--success); text-decoration: none; border: 1px solid rgba(16, 185, 129, 0.3); transition: 0.2s;}
+        .bio-link:hover { background: var(--success); color: white; }
+
+        .profile-actions { display: flex; gap: 10px; }
+
+        .badges-wrapper { background: var(--bg-surface); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--shadow-sm); }
+        
+        .profile-tabs { display: flex; justify-content: center; gap: 40px; margin-bottom: 1rem; border-top: 1px solid var(--border-color); }
+        .tab { 
+            display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; 
+            text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); 
+            padding: 15px 0; border-top: 2px solid transparent; cursor: pointer; transition: 0.2s;
+        }
+        .tab.active { color: var(--primary); border-top-color: var(--primary); margin-top: -1px; }
+        .tab:hover { color: var(--text-main); }
+
+        .ig-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding-bottom: 3rem; }
+        .ig-grid-item { 
+            aspect-ratio: 1 / 1; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; position: relative; 
+            overflow: hidden; cursor: pointer; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px; text-align: center;
+            box-shadow: var(--shadow-sm); transition: 0.3s;
+        }
+        .ig-grid-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+        
+        .grid-status { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; font-weight: bold; background: var(--bg-base); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .grid-content { font-size: 0.9rem; line-height: 1.5; color: var(--text-main); word-wrap: break-word; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; font-weight: 500; }
+        
+        .empty-grid { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--bg-surface); border-radius: 16px; border: 1px dashed var(--border-color); }
+        .empty-grid i { font-size: 3rem; margin-bottom: 15px; display: block; opacity: 0.5; }
+        
+        @media (max-width: 768px) {
+            .profile-header { flex-direction: column; text-align: center; }
+            .profile-avatar-sec { margin-right: 0; margin-bottom: 1.5rem; }
+            .profile-title-row { justify-content: center; flex-direction: column; gap: 10px; }
+            .profile-stats { justify-content: center; gap: 20px; }
+            .profile-actions { justify-content: center; }
+            .ig-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        }
+        @media (max-width: 480px) {
+            .ig-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav glass-nav">
+        <div class="logo" style="cursor: pointer;" onclick="window.location.href='index.html'">
+            <i class="fa-solid fa-arrow-left"></i> <span>Back to Grid</span>
+        </div>
+        <div class="nav-actions">
+            <button class="icon-btn theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+            <button class="icon-btn logout-btn" onclick="logout()" title="Secure Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        
+        <header class="profile-header">
+            <div class="profile-avatar-sec">
+                <img id="prof-avatar" src="https://via.placeholder.com/150" alt="Profile Picture">
+            </div>
+            
+            <div class="profile-info-sec">
+                <div class="profile-title-row">
+                    <h1 class="profile-username" id="prof-email">...</h1>
+                    <span class="profile-role-badge" id="prof-role">...</span>
+                </div>
+                
+                <div class="profile-stats">
+                    <div><span id="stat-claims">0</span> claims</div>
+                    <div><span id="stat-validations">0</span> validations</div>
+                    <div><span id="stat-trust">0</span> trust score</div>
+                </div>
+                
+                <div class="profile-bio">
+                    <span class="bio-name" id="prof-name">...</span>
+                    <div class="bio-text" id="prof-bio">...</div>
+                    <a href="#" class="bio-link" id="cert-link" style="display: none;" target="_blank">
+                        <i class="fa-solid fa-shield-check"></i> View Credentials
+                    </a>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="btn-primary-small" style="padding: 0.6rem 1.5rem;" onclick="openEditModal()"><i class="fa-solid fa-pen"></i> Edit Profile</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="badges-wrapper" id="profile-badges-container">
+            <i class="fa-solid fa-medal" style="font-size: 2rem; color: var(--border-color);"></i>
+            <p style="font-weight: 600; color: var(--text-muted); font-size: 0.95rem;">No Badges Yet</p>
+        </div>
+
+        <div class="profile-tabs">
+            <div class="tab active" onclick="switchTab('claims', this)" data-tab="claims"><i class="fa-solid fa-table-cells"></i> My Claims</div>
+            <div class="tab" onclick="switchTab('saved', this)" data-tab="saved"><i class="fa-solid fa-bookmark"></i> Saved</div>
+        </div>
+
+        <div class="ig-grid" id="profile-grid">
+            </div>
+        
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <form class="modal-content scale-in" id="edit-profile-form" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button type="button" class="icon-btn close-modal" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="flex-direction: column; padding: 2rem;">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem;">
+                    <img id="edit-avatar-preview" src="https://via.placeholder.com/100" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--border-color);">
+                    <label for="edit-avatar-upload" class="btn-text" style="color: var(--primary); padding: 0; cursor: pointer;"><i class="fa-solid fa-camera"></i> Change Photo</label>
+                    <input type="file" id="edit-avatar-upload" accept="image/*" style="display: none;">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <p class="section-label">Display Name:</p>
+                    <input type="text" id="edit-name" class="custom-input" style="width: 100%;" required>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <p class="section-label">Bio:</p>
+                    <textarea id="edit-bio" class="custom-input" style="width: 100%; min-height: 80px; resize: vertical;" placeholder="Tell the grid about yourself..."></textarea>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-text" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-profile-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://emnydyqwsmdxggepotlv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtbnlkeXF3c21keGdnZXBvdGx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Nzg5MzIsImV4cCI6MjA4OTU1NDkzMn0.rtG9j5qUm5Tr0YolFDA6VubafWNK4M0TdvFBWqDcWEs';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+        let allUserClaims = [];
+
+        function getBookmarks() { 
+            if (!currentUser) return [];
+            return JSON.parse(localStorage.getItem(`factoff_bookmarks_${currentUser.id}`) || '[]'); 
+        }
+
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').className = 'fa-solid fa-sun';
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'auth.html';
+        }
+
+        function updateProfileUI(user) {
+            if(!user) return;
+            document.getElementById('prof-role').innerText = user.role || 'participant';
+            document.getElementById('stat-trust').innerText = user.trust_score || 0;
+            document.getElementById('prof-name').innerText = user.display_name || "FactOff User";
+            document.getElementById('prof-bio').innerText = user.bio || "Seeking the truth in a world of misinformation. 🕵️‍♂️";
+            
+            if(user.profile_pic_url) {
+                document.getElementById('prof-avatar').src = user.profile_pic_url;
+                document.getElementById('edit-avatar-preview').src = user.profile_pic_url;
+            }
+
+            if (user.role === 'validator' && user.cert_url) {
+                const certBtn = document.getElementById('cert-link');
+                certBtn.style.display = 'inline-flex';
+                certBtn.href = user.cert_url;
+            }
+
+            // BADGE RENDER LOGIC FOR PROFILE (UPDATED WITH IMAGES)
+            const badgesWrapper = document.getElementById('profile-badges-container');
+            const earned = user.earned_badges || [];
+            
+            if (earned.length === 0) {
+                badgesWrapper.innerHTML = `<i class="fa-solid fa-medal" style="font-size: 2rem; color: var(--border-color);"></i><p style="font-weight: 600; color: var(--text-muted); font-size: 0.95rem;">No Badges Yet</p>`;
+            } else {
+                const badgeDefs = {
+                    'blue': { name: 'AI Detector', color: 'blue', img: 'Assets/aiDetector.png' },
+                    'orange': { name: 'Truth Veteran', color: 'orange', img: 'Assets/truthVeteran.png' },
+                    'red': { name: 'Misinformation Slayer', color: 'red', img: 'Assets/misinformationSlayer.png' }
+                };
+                
+                let badgesHtml = '<div style="display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center;">';
+                earned.forEach(id => {
+                    const b = badgeDefs[id];
+                    if(b) {
+                        badgesHtml += `
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+                                <div class="badge-icon ${b.color}">
+                                    <img src="${b.img}" alt="${b.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                </div>
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--text-main);">${b.name}</span>
+                            </div>
+                        `;
+                    }
+                });
+                badgesHtml += '</div>';
+                
+                badgesWrapper.innerHTML = `
+                    <h3 style="font-size:1rem; margin-bottom:1rem; color:var(--text-muted); text-transform:uppercase;">Earned Badges</h3>
+                    ${badgesHtml}
+                `;
+            }
+        }
+
+        const cachedUser = JSON.parse(localStorage.getItem('factoff_cached_profile'));
+        const cachedClaims = JSON.parse(localStorage.getItem('factoff_cached_claims'));
+        
+        if (cachedUser) updateProfileUI(cachedUser);
+        if (cachedClaims) {
+            allUserClaims = cachedClaims;
+            renderGrid('claims');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return window.location.href = 'auth.html';
+            currentUser = session.user;
+            document.getElementById('prof-email').innerText = currentUser.email.split('@')[0];
+
+            supabaseClient.from('users').select('*').eq('id', currentUser.id).single().then(({ data: user }) => {
+                if (user) {
+                    localStorage.setItem('factoff_cached_profile', JSON.stringify(user));
+                    updateProfileUI(user);
+                }
+            });
+
+            supabaseClient.from('claims').select('*').order('created_at', { ascending: false }).then(({ data: claims }) => {
+                if (claims) {
+                    allUserClaims = claims;
+                    localStorage.setItem('factoff_cached_claims', JSON.stringify(claims));
+                    
+                    const activeTabEl = document.querySelector('.tab.active');
+                    const activeTab = activeTabEl ? activeTabEl.getAttribute('data-tab') : 'claims';
+                    renderGrid(activeTab);
+                }
+            });
+        });
+
+        window.switchTab = (tabType, element) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            renderGrid(tabType);
+        };
+
+        function renderGrid(tabType) {
+            const grid = document.getElementById('profile-grid');
+            grid.innerHTML = '';
+
+            let filteredClaims = [];
+            
+            if (tabType === 'claims') {
+                filteredClaims = allUserClaims.filter(c => c.author_id === currentUser?.id);
+                document.getElementById('stat-claims').innerText = filteredClaims.length;
+            } else if (tabType === 'saved') {
+                const bms = getBookmarks();
+                filteredClaims = allUserClaims.filter(c => bms.includes(c.id));
+            }
+
+            if (filteredClaims.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-grid">
+                        <i class="fa-solid fa-ghost"></i>
+                        <h2>Nothing here yet.</h2>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredClaims.forEach(claim => {
+                let statusColor = "var(--text-muted)";
+                let statusIcon = "fa-circle-question";
+                let text = claim.status || 'UNRESOLVED';
+
+                if(claim.status === 'RESOLVED') {
+                    if (claim.verdict === 'REAL') { statusColor = "var(--success)"; statusIcon = "fa-check-circle"; text = "REAL"; }
+                    if (claim.verdict === 'FAKE') { statusColor = "var(--danger)"; statusIcon = "fa-times-circle"; text = "FAKE"; }
+                }
+
+                grid.innerHTML += `
+                    <div class="ig-grid-item" onclick="window.location.href='index.html'">
+                        <div class="grid-status" style="color: ${statusColor}; border-color: ${statusColor};"><i class="fa-solid ${statusIcon}"></i> ${text}</div>
+                        <div class="grid-content">${claim.content}</div>
+                        ${claim.evidence_urls && claim.evidence_urls.length > 0 ? '<i class="fa-solid fa-paperclip" style="position:absolute; bottom:12px; left:12px; font-size:1.1rem; color: var(--primary);"></i>' : ''}
+                    </div>
+                `;
+            });
+        }
+
+        function openEditModal() {
+            document.getElementById('edit-name').value = document.getElementById('prof-name').innerText;
+            document.getElementById('edit-bio').value = document.getElementById('prof-bio').innerText;
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        document.getElementById('edit-avatar-upload').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                document.getElementById('edit-avatar-preview').src = URL.createObjectURL(e.target.files[0]);
+            }
+        });
+
+        document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('save-profile-btn');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const newName = document.getElementById('edit-name').value;
+            const newBio = document.getElementById('edit-bio').value;
+            const file = document.getElementById('edit-avatar-upload').files[0];
+            
+            let avatarUrl = document.getElementById('prof-avatar').src;
+
+            try {
+                if (file) {
+                    const filePath = `${currentUser.id}/avatar_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+                    await supabaseClient.storage.from('avatars').upload(filePath, file);
+                    avatarUrl = supabaseClient.storage.from('avatars').getPublicUrl(filePath).data.publicUrl;
+                }
+
+                const { error } = await supabaseClient.from('users').update({
+                    display_name: newName,
+                    bio: newBio,
+                    profile_pic_url: avatarUrl
+                }).eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                document.getElementById('prof-name').innerText = newName;
+                document.getElementById('prof-bio').innerText = newBio;
+                document.getElementById('prof-avatar').src = avatarUrl;
+                
+                let cached = JSON.parse(localStorage.getItem('factoff_cached_profile') || '{}');
+                cached.display_name = newName;
+                cached.bio = newBio;
+                cached.profile_pic_url = avatarUrl;
+                localStorage.setItem('factoff_cached_profile', JSON.stringify(cached));
+                
+                closeEditModal();
+            } catch (err) {
+                alert("Error updating profile: " + err.message);
+            } finally {
+                btn.innerHTML = 'Save Changes';
+                btn.disabled = false;
+            }
+        });
+
+    </script>
+</body>
+</html>

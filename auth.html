@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FactOff - Authentication</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+    <div class="auth-wrapper">
+        <div class="brand-panel">
+            <video autoplay muted loop playsinline class="bg-video">
+                <source src="Assets/authvideo.mp4" type="video/mp4">
+            </video>
+            <div class="brand-overlay"></div>
+            
+            <div class="brand-content animate-in">
+                <div class="logo-large"><i class="fa-solid fa-shield-halved"></i> FACTOFF</div>
+                <h2>Don’t just post it.<br><span class="highlight">PROVE IT.</span></h2>
+                <p>Join a professional network of truth-seekers. Post claims, rigorously validate evidence, and establish your irrefutable trust score.</p>
+            </div>
+        </div>
+
+        <div class="form-panel">
+            
+            <div id="register-view" class="page-view active animate-in-up">
+                <div class="form-header stagger-1">
+                    <h2>Create Profile</h2>
+                    <p>Secure your identity on the grid.</p>
+                </div>
+
+                <form id="register-form">
+                    <div class="role-selector stagger-1" id="role-selector-wrap" data-active="participant">
+                        <div class="role-slider"></div>
+                        <div class="role-card selected" data-role="participant" onclick="selectRole('participant')">
+                            <i class="fa-solid fa-user"></i> Participant
+                        </div>
+                        <div class="role-card" data-role="validator" onclick="selectRole('validator')">
+                            <i class="fa-solid fa-user-shield"></i> Validator
+                        </div>
+                    </div>
+                    <input type="hidden" id="selected-role" value="participant" required>
+
+                    <div class="form-row stagger-2">
+                        <div class="avatar-upload-container" title="Click to upload profile photo" onclick="document.getElementById('profile-pic').click()">
+                            <div class="avatar-preview" id="avatar-preview-box">
+                                <i class="fa-solid fa-camera" id="cam-icon"></i>
+                                <img id="final-avatar-img" style="display: none;">
+                            </div>
+                        </div>
+                        <input type="file" id="profile-pic" accept="image/*" style="display: none;" required>
+                        
+                        <div class="input-group flex-1">
+                            <label>Display Name</label>
+                            <i class="fa-solid fa-id-card"></i>
+                            <input type="text" id="reg-name" placeholder="Dr. Jane Doe / TruthSeeker99" required>
+                            <div class="input-glow"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row stagger-3">
+                        <div class="input-group flex-1">
+                            <label>Email Address</label>
+                            <i class="fa-solid fa-envelope"></i>
+                            <input type="email" id="reg-email" placeholder="name@domain.com" required>
+                            <div class="input-glow"></div>
+                        </div>
+
+                        <div class="input-group flex-1">
+                            <label>Secure Password</label>
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="reg-password" placeholder="Min. 8 characters" required>
+                            <div class="input-glow"></div>
+                        </div>
+                    </div>
+
+                    <div class="input-group hidden stagger-4" id="certification-group">
+                        <label style="color: var(--primary);">Validator Credentials <span style="color:var(--danger)">*</span></label>
+                        <i class="fa-solid fa-file-contract"></i>
+                        <input type="file" id="cert-file" accept=".pdf, image/*" style="padding-left: 2.5rem;">
+                        <div class="input-glow"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary stagger-4" id="reg-btn">Complete Registration</button>
+                </form>
+                
+                <p class="switch-mode stagger-4">Already registered? <span onclick="switchView('login-view')">Sign in</span></p>
+            </div>
+
+            <div id="login-view" class="page-view">
+                <div class="form-header stagger-1">
+                    <h2>Welcome Back</h2>
+                    <p>Enter your credentials to access the grid.</p>
+                </div>
+
+                <form id="login-form">
+                    <div class="input-group stagger-2">
+                        <label>Email Address</label>
+                        <i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="login-email" placeholder="name@domain.com" required>
+                        <div class="input-glow"></div>
+                    </div>
+
+                    <div class="input-group stagger-3">
+                        <label>Password</label>
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                        <div class="input-glow"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary stagger-4" id="login-btn">Sign In</button>
+                </form>
+                <p class="switch-mode stagger-4">New to FactOff? <span onclick="switchView('register-view')">Create an account</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cropper-modal">
+        <div class="cropper-container">
+            <h3>Crop & Position Image</h3>
+            <div class="image-workspace">
+                <img id="image-to-crop" src="" alt="Workspace">
+            </div>
+            <div class="cropper-controls">
+                <button type="button" class="btn-secondary" onclick="closeCropper()">Cancel</button>
+                <button type="button" class="btn-primary" style="width: auto; margin-top: 0; padding: 0.6rem 1.5rem;" onclick="applyCrop()">Apply Image</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
